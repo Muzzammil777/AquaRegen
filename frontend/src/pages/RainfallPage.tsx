@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   CloudRain,
-  Calendar,
   MapPin,
   Layers,
   Droplets,
-  TrendingUp,
-  Info,
-  ArrowRight,
-  Zap,
   Thermometer,
-  Wind,
   Search,
   CheckCircle2
 } from 'lucide-react';
@@ -32,7 +26,9 @@ import { LoadingSkeleton } from '../components/common/LoadingSkeleton';
 
 export const RainfallPage: React.FC = () => {
   const { property } = useAuth();
-  const [selectedLocation, setSelectedLocation] = useState<string>('bengaluru');
+  const [selectedLocation, setSelectedLocation] = useState<string>(
+    property?.location ? property.location.split(',')[0].toLowerCase() : 'bengaluru'
+  );
   const [roofArea, setRoofArea] = useState<number>(property?.roof_area_sqm || 120);
   const [surfaceType, setSurfaceType] = useState<string>(property?.surface_type || 'concrete');
   const [customSearchQuery, setCustomSearchQuery] = useState<string>('');
@@ -40,10 +36,19 @@ export const RainfallPage: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  const fetchRainfall = async () => {
+  // Initialize with property location if present
+  useEffect(() => {
+    if (property?.location) {
+      const locKey = property.location.split(',')[0].toLowerCase().trim();
+      setSelectedLocation(locKey);
+    }
+  }, [property]);
+
+  const fetchRainfall = async (locToFetch?: string) => {
     setLoading(true);
     try {
-      const res = await api.getRainfallAnalysis(selectedLocation, roofArea, surfaceType);
+      const loc = locToFetch || selectedLocation;
+      const res = await api.getRainfallAnalysis(loc, roofArea, surfaceType);
       setData(res);
     } catch (err) {
       console.warn('Rainfall analysis fetch error:', err);
@@ -53,32 +58,23 @@ export const RainfallPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchRainfall();
+    fetchRainfall(selectedLocation);
   }, [selectedLocation, roofArea, surfaceType]);
 
   const handleCustomLocationSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customSearchQuery.trim()) return;
-    setSearchStatus('Geocoding in real-time...');
+    const query = customSearchQuery.trim();
+    setSearchStatus(`Connecting to satellite feeds for "${query}"...`);
+    
     try {
-      const json = await api.searchLocation(customSearchQuery);
-      if (json.found && json.location) {
-        setSearchStatus(`Found: ${json.location.name.slice(0, 45)}...`);
-        // Fetch live weather for coordinates
-        const liveJson = await api.getLiveWeather(json.location.latitude, json.location.longitude);
-        if (data) {
-          setData({
-            ...data,
-            location: json.location.name.split(',')[0],
-            annual_rainfall_mm: liveJson.annual_rainfall_mm,
-            live_weather: liveJson
-          });
-        }
-      } else {
-        setSearchStatus('Location not found in satellite database.');
-      }
+      setSelectedLocation(query);
+      const res = await api.getRainfallAnalysis(query, roofArea, surfaceType);
+      setData(res);
+      setSearchStatus(`✅ Loaded live meteorological data for ${res.location} (${res.annual_rainfall_mm} mm/year)`);
+      setTimeout(() => setSearchStatus(null), 5000);
     } catch (err) {
-      setSearchStatus('Live lookup unavailable.');
+      setSearchStatus('Failed to retrieve satellite feed. Using baseline.');
     }
   };
 
@@ -97,7 +93,7 @@ export const RainfallPage: React.FC = () => {
             Rainfall & Real-Time Meteorological Analysis
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Live atmospheric precipitation feeds, 7-day storm forecasts, and rooftop runoff modeling.
+            Live atmospheric precipitation feeds, 7-day storm forecasts, and rooftop runoff modeling for {data?.location || 'your area'}.
           </p>
         </div>
 
@@ -115,7 +111,7 @@ export const RainfallPage: React.FC = () => {
           </div>
           <button
             type="submit"
-            className="px-3.5 py-2 rounded-xl bg-navy-800 hover:bg-navy-900 text-white text-xs font-bold transition-all"
+            className="px-3.5 py-2 rounded-xl bg-navy-800 hover:bg-navy-900 text-white text-xs font-bold transition-all cursor-pointer"
           >
             Locate
           </button>
@@ -123,7 +119,7 @@ export const RainfallPage: React.FC = () => {
       </div>
 
       {searchStatus && (
-        <div className="p-2.5 rounded-xl bg-aqua-50 dark:bg-aqua-950/60 border border-aqua-200 dark:border-aqua-800 text-xs text-aqua-700 dark:text-aqua-300 font-medium">
+        <div className="p-3 rounded-xl bg-aqua-50 dark:bg-aqua-950/60 border border-aqua-200 dark:border-aqua-800 text-xs text-aqua-700 dark:text-aqua-300 font-medium">
           {searchStatus}
         </div>
       )}
@@ -142,7 +138,7 @@ export const RainfallPage: React.FC = () => {
 
           <div className="space-y-1">
             <span className="text-[11px] text-aqua-300 font-semibold flex items-center gap-1.5">
-              <Wind className="w-3.5 h-3.5 text-aqua-400" />
+              <CloudRain className="w-3.5 h-3.5 text-aqua-400" />
               Live Humidity
             </span>
             <p className="text-xl font-black">{data.live_weather.current_humidity_pct}%</p>
@@ -177,7 +173,7 @@ export const RainfallPage: React.FC = () => {
             Regional Climate Zone
           </label>
           <select
-            value={selectedLocation}
+            value={data?.selected_id || selectedLocation}
             onChange={e => setSelectedLocation(e.target.value)}
             className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-surface-darkborder text-xs font-semibold text-navy-900 dark:text-white focus:outline-none focus:border-aqua-500"
           >
@@ -220,98 +216,126 @@ export const RainfallPage: React.FC = () => {
         </div>
       </div>
 
-      {loading ? (
-        <LoadingSkeleton rows={4} />
+      {/* Main Charts: Monthly Distribution & 7-Day Forecast */}
+      {loading || !data ? (
+        <LoadingSkeleton type="chart" />
       ) : (
-        <>
-          {/* 7-Day Live Precipitation Forecast Chart */}
-          {data?.live_weather?.forecast_7_days?.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Monthly Rainfall & Harvest Potential */}
+          <div className="lg:col-span-8">
             <ChartCard
-              title="7-Day Live Meteorological Rain Forecast"
-              subtitle="Direct satellite precipitation model from Open-Meteo"
+              title={`Monthly Precipitation & Harvest Volume — ${data.location}`}
+              subtitle={`Annual Total: ${data.annual_rainfall_mm} mm • Modeled rooftop yield: ${data.calculated_annual_harvest_litres.toLocaleString()} L/year`}
             >
-              <div className="h-64">
+              <div className="h-72 w-full pt-2">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.live_weather.forecast_7_days}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(11, 53, 88, 0.06)" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} unit=" mm" />
+                  <AreaChart data={data.monthly_trend} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="rainfallGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#159BD7" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#159BD7" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
+                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} />
+                    <YAxis stroke="#94a3b8" fontSize={11} />
                     <Tooltip
-                      formatter={(val: any) => [`${val} mm`, 'Forecast Rain']}
-                      contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
+                      contentStyle={{
+                        backgroundColor: '#0B3558',
+                        borderRadius: '12px',
+                        color: '#ffffff',
+                        border: 'none',
+                        fontSize: '12px',
+                      }}
+                      formatter={(val: any, name?: any) => [
+                        name === 'rainfall_mm' ? `${val} mm` : `${Number(val).toLocaleString()} L`,
+                        name === 'rainfall_mm' ? 'Rainfall' : 'Harvested Water',
+                      ]}
                     />
-                    <Bar dataKey="precipitation_mm" fill="#159BD7" radius={[6, 6, 0, 0]} name="Expected Rain (mm)" />
-                  </BarChart>
+                    <Area type="monotone" dataKey="rainfall_mm" stroke="#159BD7" strokeWidth={2.5} fill="url(#rainfallGrad)" />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
             </ChartCard>
-          )}
+          </div>
 
-          {/* Monthly Distribution Chart */}
-          <ChartCard
-            title={`Monthly Precipitation & Harvest Yield — ${data?.location}`}
-            subtitle={`Annual Baseline: ${data?.annual_rainfall_mm} mm • Peak Month: ${data?.peak_month}`}
-          >
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data?.monthly_trend}>
-                  <defs>
-                    <linearGradient id="rainGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#159BD7" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#159BD7" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(11, 53, 88, 0.06)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis yAxisId="left" tick={{ fontSize: 11 }} unit=" mm" />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} unit=" L" />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
-                  />
-                  <Area
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="rainfall_mm"
-                    stroke="#159BD7"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#rainGrad)"
-                    name="Rainfall (mm)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
+          {/* 7-Day Live Precipitation Forecast */}
+          <div className="lg:col-span-4 flex flex-col">
+            <ChartCard
+              title="7-Day Live Rain Forecast"
+              subtitle="Open-Meteo storm radar prediction"
+            >
+              <div className="h-72 w-full pt-2">
+                {data.live_weather?.forecast_7days ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data.live_weather.forecast_7days} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
+                      <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} />
+                      <YAxis stroke="#94a3b8" fontSize={10} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#0B3558',
+                          borderRadius: '12px',
+                          color: '#ffffff',
+                          border: 'none',
+                          fontSize: '12px',
+                        }}
+                        formatter={(val: any) => [`${val} mm`, 'Expected Rain']}
+                      />
+                      <Bar dataKey="rain_mm" fill="#2FA36B" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-xs text-slate-400">
+                    Live forecast loading...
+                  </div>
+                )}
+              </div>
+            </ChartCard>
+          </div>
+        </div>
+      )}
 
-          {/* 5-Year Historical Comparison */}
-          <ChartCard
-            title="5-Year Climate Precipitation Comparison"
-            subtitle="Annual rainfall variance and climate trend analysis"
-          >
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
-              {data?.historical_comparison?.map((item: any, idx: number) => (
-                <div
-                  key={idx}
-                  className="p-4 rounded-2xl bg-slate-50 dark:bg-surface-dark border border-slate-100 dark:border-surface-darkborder text-center space-y-1"
-                >
-                  <p className="text-xs font-bold text-slate-400">{item.year}</p>
-                  <p className="text-lg font-black text-navy-900 dark:text-white">
-                    {item.rainfall_mm} <span className="text-xs font-normal">mm</span>
-                  </p>
-                  <span
-                    className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                      item.deviation.startsWith('+')
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                        : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
-                    }`}
-                  >
-                    {item.deviation}
+      {/* Historical Comparison & Calculation Formula Box */}
+      {data && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-7 bg-white dark:bg-surface-darkcard border border-slate-100 dark:border-surface-darkborder rounded-2xl p-6 shadow-soft space-y-4">
+            <h3 className="text-base font-extrabold text-navy-900 dark:text-white">
+              5-Year Climate Precipitation Trends ({data.location})
+            </h3>
+            <div className="grid grid-cols-5 gap-2 text-center pt-2">
+              {data.historical_comparison?.map((h: any) => (
+                <div key={h.year} className="p-3 rounded-xl bg-slate-50 dark:bg-surface-dark border border-slate-100 dark:border-surface-darkborder">
+                  <span className="text-[11px] font-bold text-slate-400 block">{h.year}</span>
+                  <span className="text-sm font-black text-navy-900 dark:text-white block mt-1">{h.rainfall_mm} mm</span>
+                  <span className={`text-[10px] font-bold ${h.deviation.startsWith('+') ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    {h.deviation}
                   </span>
                 </div>
               ))}
             </div>
-          </ChartCard>
-        </>
+          </div>
+
+          <div className="lg:col-span-5 bg-gradient-to-br from-navy-900 to-navy-950 text-white rounded-2xl p-6 shadow-soft space-y-3 flex flex-col justify-between">
+            <div>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-aqua-400">
+                Hydrological Math Engine
+              </span>
+              <h4 className="text-sm font-extrabold text-white mt-1">
+                Net Harvestable Yield Formula
+              </h4>
+              <p className="text-xs text-slate-300 font-mono mt-2 bg-white/10 p-2.5 rounded-xl">
+                {data.formula_preview}
+              </p>
+            </div>
+            <div className="flex items-center justify-between pt-3 border-t border-white/10 text-xs">
+              <span className="text-slate-300">Annual Harvest Potential:</span>
+              <span className="text-base font-black text-aqua-300">
+                {data.calculated_annual_harvest_litres?.toLocaleString()} Litres
+              </span>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

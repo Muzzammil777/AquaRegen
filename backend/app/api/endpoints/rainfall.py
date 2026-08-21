@@ -38,21 +38,54 @@ async def get_live_weather(
 @router.get("/")
 async def get_rainfall_analysis(
     location: Optional[str] = "bengaluru",
+    lat: Optional[float] = None,
+    lon: Optional[float] = None,
     roof_area: Optional[float] = 120.0,
     surface_type: Optional[str] = "concrete",
     current_user: dict = Depends(get_current_user)
 ):
-    region_info = REGIONAL_COORDINATES.get(location.lower(), REGIONAL_COORDINATES["bengaluru"])
+    loc_clean = (location or "bengaluru").strip()
+    loc_key = loc_clean.lower().replace(" ", "_")
     
-    # Fetch live meteorological data from Open-Meteo
-    live_weather = await weather_service.get_live_precipitation_data(
-        region_info["lat"], region_info["lon"]
-    )
-    
-    annual_rain = live_weather.get("annual_rainfall_mm", region_info["annual_mm"])
+    # 1. Determine Coordinates & Display Name
+    if loc_key in REGIONAL_COORDINATES and lat is None and lon is None:
+        region_info = REGIONAL_COORDINATES[loc_key]
+        target_lat = region_info["lat"]
+        target_lon = region_info["lon"]
+        display_name = region_info["name"]
+        monsoon = region_info["monsoon_intensity"]
+        peak = region_info["peak_month"]
+        is_custom = False
+    else:
+        # Dynamic search or user location
+        target_lat = lat
+        target_lon = lon
+        display_name = loc_clean.split(",")[0].title()
+        is_custom = True
+        
+        if target_lat is None or target_lon is None:
+            try:
+                geo = await weather_service.geocode_location(loc_clean)
+                if geo:
+                    target_lat = geo.get("latitude", 12.9716)
+                    target_lon = geo.get("longitude", 77.5946)
+                    display_name = geo.get("name", loc_clean).split(",")[0]
+                else:
+                    target_lat = 12.9716
+                    target_lon = 77.5946
+            except Exception:
+                target_lat = 12.9716
+                target_lon = 77.5946
+
+        monsoon = "Live Satellite Climate Feed"
+        peak = "Monsoon Season"
+
+    # 2. Fetch live meteorological data from Open-Meteo
+    live_weather = await weather_service.get_live_precipitation_data(target_lat, target_lon)
+    annual_rain = live_weather.get("annual_rainfall_mm", 850.0)
     current_live_rain = live_weather.get("current_rain_mm", 0.0)
     
-    # Calculate monthly distribution scaled to live annual precipitation
+    # 3. Monthly distribution scaled to live precipitation
     monthly_data = []
     for item in SEED_RAINFALL_SERIES["monthly"]:
         scaled_rain = round((item["rainfall_mm"] / 850.0) * annual_rain, 1)
@@ -61,7 +94,7 @@ async def get_rainfall_analysis(
             "month": item["time"],
             "rainfall_mm": scaled_rain,
             "harvest_litres": round(calc["net_harvestable_litres"]),
-            "is_peak": item["time"].lower() in region_info["peak_month"].lower()
+            "is_peak": item["time"].lower() in peak.lower()
         })
         
     harvest_annual = HydroEngine.calculate_harvest_potential(roof_area, annual_rain, surface_type)
@@ -75,18 +108,31 @@ async def get_rainfall_analysis(
         {"year": "2026 (Live Feed)", "rainfall_mm": round(annual_rain, 1), "deviation": "+4%"}
     ]
     
+    # Build options list
+    options = []
+    if is_custom:
+        options.append({
+            "id": loc_key,
+            "name": f"📍 {display_name} (Live GPS/Search)",
+            "annual_mm": annual_rain
+        })
+        
+    for k, v in REGIONAL_COORDINATES.items():
+        options.append({"id": k, "name": v["name"], "annual_mm": v["annual_mm"]})
+        
     return {
-        "location": region_info["name"],
+        "location": display_name,
+        "selected_id": loc_key,
+        "latitude": target_lat,
+        "longitude": target_lon,
         "annual_rainfall_mm": annual_rain,
-        "monsoon_intensity": region_info["monsoon_intensity"],
-        "peak_month": region_info["peak_month"],
+        "monsoon_intensity": monsoon,
+        "peak_month": peak,
         "current_rainfall_mm": current_live_rain,
         "live_weather": live_weather,
         "monthly_trend": monthly_data,
         "historical_comparison": historical,
         "calculated_annual_harvest_litres": round(harvest_annual["net_harvestable_litres"]),
         "formula_preview": harvest_annual["formula_string"],
-        "regional_options": [
-            {"id": k, "name": v["name"], "annual_mm": v["annual_mm"]} for k, v in REGIONAL_COORDINATES.items()
-        ]
+        "regional_options": options
     }
