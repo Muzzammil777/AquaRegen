@@ -182,6 +182,15 @@ class ApiService {
     return this.request<{ prompts: string[] }>('/ai/prompts');
   }
 
+  // Real-Time Weather & Geocoding
+  async searchLocation(query: string): Promise<{ found: boolean; location?: any; message?: string }> {
+    return this.request<{ found: boolean; location?: any; message?: string }>(`/rainfall/search-location?query=${encodeURIComponent(query)}`);
+  }
+
+  async getLiveWeather(lat: number, lon: number): Promise<any> {
+    return this.request<any>(`/rainfall/live?lat=${lat}&lon=${lon}`);
+  }
+
   // Settings
   async getSettings() {
     return this.request<any>('/settings');

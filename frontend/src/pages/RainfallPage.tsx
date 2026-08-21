@@ -61,13 +61,11 @@ export const RainfallPage: React.FC = () => {
     if (!customSearchQuery.trim()) return;
     setSearchStatus('Geocoding in real-time...');
     try {
-      const res = await fetch(`http://localhost:8000/api/rainfall/search-location?query=${encodeURIComponent(customSearchQuery)}`);
-      const json = await res.json();
+      const json = await api.searchLocation(customSearchQuery);
       if (json.found && json.location) {
         setSearchStatus(`Found: ${json.location.name.slice(0, 45)}...`);
         // Fetch live weather for coordinates
-        const liveRes = await fetch(`http://localhost:8000/api/rainfall/live?lat=${json.location.latitude}&lon=${json.location.longitude}`);
-        const liveJson = await liveRes.json();
+        const liveJson = await api.getLiveWeather(json.location.latitude, json.location.longitude);
         if (data) {
           setData({
             ...data,
