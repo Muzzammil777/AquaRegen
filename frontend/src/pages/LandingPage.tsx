@@ -151,30 +151,28 @@ export const LandingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F5FAFC] dark:bg-[#071322] text-slate-800 dark:text-slate-100 flex flex-col selection:bg-aqua-500 selection:text-white transition-colors duration-300">
+    <div className="min-h-screen bg-[#F5FAFC] dark:bg-[#071322] text-slate-800 dark:text-slate-100 flex flex-col selection:bg-aqua-500 selection:text-white transition-colors duration-300 overflow-x-hidden w-full">
       {/* Dynamic Background Glows */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-to-r from-aqua-500/15 via-forest-500/10 to-navy-600/20 blur-[120px] rounded-full" />
-        <div className="absolute top-[60%] -left-40 w-[600px] h-[600px] bg-aqua-500/10 blur-[140px] rounded-full" />
-        <div className="absolute top-[75%] -right-40 w-[600px] h-[600px] bg-forest-500/10 blur-[140px] rounded-full" />
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[400px] bg-gradient-to-r from-aqua-500/15 via-forest-500/10 to-navy-600/20 blur-[120px] rounded-full" />
       </div>
 
       {/* Sticky Glass Navbar */}
-      <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#071322]/85 backdrop-blur-xl border-b border-slate-200/70 dark:border-slate-800/80 px-4 sm:px-8 lg:px-12 py-3.5 transition-all">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#071322]/90 backdrop-blur-xl border-b border-slate-200/70 dark:border-slate-800/80 px-3 sm:px-8 lg:px-12 py-3 transition-all w-full">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           {/* Logo */}
-          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')}>
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#0B3558] via-[#159BD7] to-[#2FA36B] flex items-center justify-center text-white shadow-md shadow-aqua-500/20 group-hover:scale-105 transition-transform duration-300">
-              <Droplets className="w-6 h-6 text-white" />
+          <div className="flex items-center gap-2 sm:gap-3 cursor-pointer group shrink-0" onClick={() => navigate('/')}>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#0B3558] via-[#159BD7] to-[#2FA36B] flex items-center justify-center text-white shadow-md shadow-aqua-500/20 group-hover:scale-105 transition-transform duration-300 shrink-0">
+              <Droplets className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-xl text-[#072038] dark:text-white tracking-tight">AquaRegen</span>
-                <span className="px-1.5 py-0.2 rounded bg-aqua-50 dark:bg-aqua-950 text-aqua-600 dark:text-aqua-400 text-[10px] font-bold border border-aqua-200 dark:border-aqua-800">
+              <div className="flex items-center gap-1">
+                <span className="font-extrabold text-base sm:text-xl text-[#072038] dark:text-white tracking-tight">AquaRegen</span>
+                <span className="hidden xs:inline-block px-1.5 py-0.2 rounded bg-aqua-50 dark:bg-aqua-950 text-aqua-600 dark:text-aqua-400 text-[10px] font-bold border border-aqua-200 dark:border-aqua-800">
                   v1.0
                 </span>
               </div>
-              <p className="text-[10px] uppercase font-bold tracking-wider text-aqua-600 dark:text-aqua-400">
+              <p className="hidden sm:block text-[10px] uppercase font-bold tracking-wider text-aqua-600 dark:text-aqua-400">
                 Climate-Tech Water Security
               </p>
             </div>
@@ -183,17 +181,17 @@ export const LandingPage: React.FC = () => {
           {/* Center Navigation Links */}
           <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-600 dark:text-slate-300">
             <a href="#water-cycle" className="hover:text-aqua-600 dark:hover:text-aqua-400 transition-colors">Water Cycle</a>
-            <a href="#calculator" className="hover:text-aqua-600 dark:hover:text-aqua-400 transition-colors">Interactive Estimator</a>
-            <a href="#scenarios" className="hover:text-aqua-600 dark:hover:text-aqua-400 transition-colors">What-If Scenarios</a>
-            <a href="#sectors" className="hover:text-aqua-600 dark:hover:text-aqua-400 transition-colors">Target Sectors</a>
+            <a href="#calculator" className="hover:text-aqua-600 dark:hover:text-aqua-400 transition-colors">Estimator</a>
+            <a href="#scenarios" className="hover:text-aqua-600 dark:hover:text-aqua-400 transition-colors">Scenarios</a>
+            <a href="#sectors" className="hover:text-aqua-600 dark:hover:text-aqua-400 transition-colors">Sectors</a>
             <a href="#ai-assistant" className="hover:text-aqua-600 dark:hover:text-aqua-400 transition-colors">Aqua AI</a>
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-1.5 sm:p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
@@ -201,31 +199,31 @@ export const LandingPage: React.FC = () => {
 
             <button
               onClick={() => quickDemoLogin().then(() => navigate('/dashboard'))}
-              className="hidden sm:inline-flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+              className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
             >
               <Zap className="w-3.5 h-3.5 text-amber-500" />
-              <span>1-Click Demo</span>
+              <span>Demo</span>
             </button>
 
             <button
               onClick={() => navigate('/login')}
-              className="px-3.5 py-2 text-xs font-bold text-[#0B3558] dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+              className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-bold text-[#0B3558] dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
             >
               Sign In
             </button>
 
             <button
               onClick={() => navigate('/register')}
-              className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-[#0B3558] to-[#159BD7] hover:opacity-95 rounded-xl shadow-md shadow-aqua-500/25 transition-all hover:scale-[1.02]"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold text-white bg-gradient-to-r from-[#0B3558] to-[#159BD7] hover:opacity-95 rounded-xl shadow-md shadow-aqua-500/25 transition-all truncate"
             >
-              Start Assessment
+              Get Started
             </button>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-12 sm:pt-16 pb-20 px-4 sm:px-8 lg:px-12 z-10">
+      <section className="relative pt-8 sm:pt-16 pb-16 sm:pb-20 px-4 sm:px-8 lg:px-12 z-10 w-full overflow-hidden">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Left Hero Column */}
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
@@ -402,16 +400,16 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* Interactive Water Cycle Architecture */}
-      <section id="water-cycle" className="py-20 px-4 sm:px-8 lg:px-12 bg-white dark:bg-[#0c1b2c] border-y border-slate-200/80 dark:border-slate-800 z-10">
+      <section id="water-cycle" className="py-16 sm:py-20 px-4 sm:px-8 lg:px-12 bg-white dark:bg-[#0c1b2c] border-y border-slate-200/80 dark:border-slate-800 z-10 w-full overflow-hidden">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-14">
+          <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14">
             <span className="text-xs font-extrabold uppercase tracking-wider text-aqua-600 dark:text-aqua-400">
               End-to-End Closed Loop Flow
             </span>
-            <h2 className="text-3xl sm:text-4xl font-black text-[#072038] dark:text-white mt-1">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#072038] dark:text-white mt-1">
               From Atmospheric Cloud to Groundwater Aquifer
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
               Understand the complete transformation path that turns intermittent heavy rainstorms into continuous year-round water security.
             </p>
           </div>
@@ -420,7 +418,7 @@ export const LandingPage: React.FC = () => {
             {waterCycleSteps.map((step, idx) => (
               <div
                 key={idx}
-                className="relative bg-[#F5FAFC] dark:bg-[#071322] p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between group hover:border-aqua-400 hover:shadow-lg transition-all duration-300"
+                className="relative bg-[#F5FAFC] dark:bg-[#071322] p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-col justify-between group hover:border-aqua-400 hover:shadow-lg transition-all duration-300 w-full"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
@@ -461,13 +459,13 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* Interactive What-If Scenario Matrix Section */}
-      <section id="scenarios" className="py-20 px-4 sm:px-8 lg:px-12 z-10">
+      <section id="scenarios" className="py-16 sm:py-20 px-4 sm:px-8 lg:px-12 z-10 w-full overflow-hidden">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-12">
+          <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-12">
             <span className="text-xs font-extrabold uppercase tracking-wider text-forest-600 dark:text-forest-400">
               Comparative Impact Modeling
             </span>
-            <h2 className="text-3xl sm:text-4xl font-black text-[#072038] dark:text-white mt-1">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#072038] dark:text-white mt-1">
               What-If Scenario Comparison
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
