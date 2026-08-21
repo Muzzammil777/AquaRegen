@@ -156,9 +156,19 @@ class ApiService {
   }
 
   // GIS Map
-  async getMapZones(category?: string): Promise<{ zones: MapZone[]; total: number; categories: Array<{ id: string; label: string }> }> {
-    const q = category ? `?category=${category}` : '';
-    return this.request<{ zones: MapZone[]; total: number; categories: Array<{ id: string; label: string }> }>(`/map/zones${q}`);
+  async getMapZones(
+    category?: string,
+    lat?: number,
+    lon?: number,
+    locationName?: string
+  ): Promise<{ zones: MapZone[]; total: number; categories: Array<{ id: string; label: string }> }> {
+    const params = new URLSearchParams();
+    if (category && category !== 'all') params.append('category', category);
+    if (lat !== undefined) params.append('lat', lat.toString());
+    if (lon !== undefined) params.append('lon', lon.toString());
+    if (locationName) params.append('location_name', locationName);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return this.request<{ zones: MapZone[]; total: number; categories: Array<{ id: string; label: string }> }>(`/map/zones${qs}`);
   }
 
   // Impact Analytics
