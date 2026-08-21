@@ -104,13 +104,17 @@ export const MapPage: React.FC = () => {
       const propLocation = property?.location || 'Bengaluru Urban, KA';
       setLocationLabel(propLocation.split(',')[0]);
 
-      // If coordinates are explicitly available and not default Bengaluru for a non-bengaluru location
-      if (property?.latitude && property?.longitude && !propLocation.toLowerCase().includes('bengaluru')) {
+      // Check if property has custom non-default coordinates
+      const isDefaultBangaloreCoords =
+        Math.abs((property?.latitude || 0) - 12.9716) < 0.001 &&
+        Math.abs((property?.longitude || 0) - 77.5946) < 0.001;
+
+      if (property?.latitude && property?.longitude && !isDefaultBangaloreCoords) {
         setUserCoords([property.latitude, property.longitude]);
         return;
       }
 
-      // If location is custom (like Pugalur, Tamil Nadu), geocode it live
+      // If coordinates are default or missing, geocode the actual city/town string
       try {
         const geoRes = await api.searchLocation(propLocation);
         if (geoRes.found && geoRes.location) {
@@ -129,6 +133,20 @@ export const MapPage: React.FC = () => {
 
     resolveUserLocation();
   }, [property]);
+
+  const handleUseGPS = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        setUserCoords([lat, lon]);
+        setLocationLabel('My GPS Location');
+      },
+      (err) => console.warn('GPS denied:', err),
+      { timeout: 8000 }
+    );
+  };
 
   // 2. Fetch zones centered on user's real location
   const fetchZones = async (category: string, lat: number, lon: number, locName: string) => {
@@ -174,18 +192,29 @@ export const MapPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Recenter Button */}
-        <button
-          onClick={() => {
-            if (zones.length > 0) {
-              setSelectedZone(zones[0]);
-            }
-          }}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy-800 hover:bg-navy-900 text-white text-xs font-bold shadow-soft transition-all self-start sm:self-auto"
-        >
-          <Navigation className="w-3.5 h-3.5 text-aqua-400" />
-          <span>Center on My Property</span>
-        </button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={handleUseGPS}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-aqua-50 dark:bg-aqua-950/60 hover:bg-aqua-100 dark:hover:bg-aqua-900/60 text-aqua-700 dark:text-aqua-300 border border-aqua-200 dark:border-aqua-800 text-xs font-bold shadow-soft transition-all"
+            title="Use device GPS location"
+          >
+            <MapPin className="w-3.5 h-3.5 text-aqua-500" />
+            <span>Use Live GPS</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (zones.length > 0) {
+                setSelectedZone(zones[0]);
+              }
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy-800 hover:bg-navy-900 text-white text-xs font-bold shadow-soft transition-all"
+          >
+            <Navigation className="w-3.5 h-3.5 text-aqua-400" />
+            <span>Center on My Property</span>
+          </button>
+        </div>
       </div>
 
       {/* Category Filter Pills */}

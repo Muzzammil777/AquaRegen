@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from app.schemas.auth import UserRegister, UserLogin, TokenResponse, UserProfile, OnboardingRequest
 from app.core.security import verify_password, get_password_hash, create_access_token, decode_access_token, oauth2_scheme
 from app.db.repository import db_repo
+from app.services.weather_service import weather_service
 import uuid
 
 router = APIRouter()
@@ -48,6 +49,17 @@ async def register(user_in: UserRegister):
     
     await db_repo.insert_one("users", user_doc)
     
+    # Auto-resolve real coordinates
+    lat = 12.9716
+    lon = 77.5946
+    try:
+        geo = await weather_service.geocode_location(user_in.location or "Bengaluru Urban, KA")
+        if geo:
+            lat = geo.get("latitude", 12.9716)
+            lon = geo.get("longitude", 77.5946)
+    except Exception:
+        pass
+
     # Create default property
     prop_doc = {
         "id": f"prop_{uuid.uuid4().hex[:12]}",
@@ -55,8 +67,8 @@ async def register(user_in: UserRegister):
         "name": f"{user_in.name}'s Primary Property",
         "property_type": user_in.property_type or "House",
         "location": user_in.location or "Bengaluru Urban, KA",
-        "latitude": 12.9716,
-        "longitude": 77.5946,
+        "latitude": lat,
+        "longitude": lon,
         "roof_area_sqm": user_in.property_area or 120.0,
         "surface_type": "concrete",
         "annual_rainfall_mm": 850.0,
@@ -109,6 +121,26 @@ async def login(credentials: UserLogin):
 @router.get("/me")
 async def get_me(current_user: dict = Depends(get_current_user)):
     user_properties = await db_repo.find_many("properties", {"user_id": current_user["id"]})
+    primary_prop = user_properties[0] if user_properties else None
+    
+    # Auto-resolve and backfill true coordinates if default
+    if primary_prop:
+        loc = primary_prop.get("location", "")
+        lat = primary_prop.get("latitude", 12.9716)
+        lon = primary_prop.get("longitude", 77.5946)
+        if loc and abs(lat - 12.9716) < 0.001 and abs(lon - 77.5946) < 0.001 and "bengaluru" not in loc.lower():
+            try:
+                geo = await weather_service.geocode_location(loc)
+                if geo:
+                    primary_prop["latitude"] = geo.get("latitude", lat)
+                    primary_prop["longitude"] = geo.get("longitude", lon)
+                    await db_repo.update_one("properties", {"id": primary_prop["id"]}, {
+                        "latitude": primary_prop["latitude"],
+                        "longitude": primary_prop["longitude"]
+                    })
+            except Exception:
+                pass
+
     return {
         "user": {
             "id": current_user["id"],
@@ -119,7 +151,7 @@ async def get_me(current_user: dict = Depends(get_current_user)):
             "property_area": current_user.get("property_area", 120.0),
             "onboarding_completed": current_user.get("onboarding_completed", True)
         },
-        "primary_property": user_properties[0] if user_properties else None
+        "primary_property": primary_prop
     }
 
 @router.post("/onboarding")
@@ -132,6 +164,17 @@ async def complete_onboarding(data: OnboardingRequest, current_user: dict = Depe
         "onboarding_completed": True
     })
     
+    # Geocode location for real coordinates
+    lat = 12.9716
+    lon = 77.5946
+    try:
+        geo = await weather_service.geocode_location(data.location)
+        if geo:
+            lat = geo.get("latitude", 12.9716)
+            lon = geo.get("longitude", 77.5946)
+    except Exception:
+        pass
+
     # Update or insert property
     existing_prop = await db_repo.find_one("properties", {"user_id": current_user["id"]})
     prop_data = {
@@ -139,6 +182,8 @@ async def complete_onboarding(data: OnboardingRequest, current_user: dict = Depe
         "name": f"{current_user['name']}'s {data.property_type}",
         "property_type": data.property_type,
         "location": data.location,
+        "latitude": lat,
+        "longitude": lon,
         "roof_area_sqm": data.roof_area_sqm,
         "surface_type": data.surface_type,
         "annual_rainfall_mm": data.annual_rainfall_mm,
