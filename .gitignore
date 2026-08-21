@@ -1,0 +1,42 @@
+# Node & Frontend dependencies
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/*.tsbuildinfo
+
+# Python & Backend artifacts
+__pycache__/
+backend/__pycache__/
+backend/*/__pycache__/
+backend/*/*/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+backend/.pytest_cache/
+.coverage
+htmlcov/
+
+# Environments & Secrets
+.env
+backend/.env
+!.env.example
+!backend/.env.example
+venv/
+.venv/
+env/
+ENV/
+
+# Local JSON database storage
+backend/data/*.json
+data/*.json
+!backend/data/.gitkeep
+
+# IDE and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-navy-950: #05111F;
+  --color-navy-900: #072038;
+  --color-navy-800: #0B3558;
+  --color-navy-700: #104B7B;
+  --color-navy-600: #1662A0;
+  --color-navy-500: #1F7DC7;
+  --color-navy-100: #E3EDF5;
+  --color-navy-50: #F2F7FA;
+
+  --color-aqua-700: #0B6891;
+  --color-aqua-600: #0E7FA8;
+  --color-aqua-500: #159BD7;
+  --color-aqua-400: #3DB4E8;
+  --color-aqua-300: #75CEF2;
+  --color-aqua-200: #B0E4F9;
+  --color-aqua-100: #E1F4FC;
+  --color-aqua-50: #F0F9FD;
+
+  --color-forest-700: #1B633F;
+  --color-forest-600: #238052;
+  --color-forest-500: #2FA36B;
+  --color-forest-400: #48BD83;
+  --color-forest-300: #7DD4A6;
+  --color-forest-100: #E6F6EE;
+  --color-forest-50: #F2FAF6;
+
+  --color-surface-base: #F5FAFC;
+  --color-surface-card: #FFFFFF;
+  --color-surface-dark: #0B1523;
+  --color-surface-darkcard: #122033;
+  --color-surface-darkborder: #1E334D;
+
+  --font-sans: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --shadow-soft: 0 2px 15px -3px rgba(11, 53, 88, 0.06), 0 4px 6px -2px rgba(11, 53, 88, 0.04);
+  --shadow-soft-lg: 0 10px 25px -5px rgba(11, 53, 88, 0.08), 0 8px 10px -6px rgba(11, 53, 88, 0.04);
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background-color: #F5FAFC;
+    color: #0F172A;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(11, 53, 88, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(21, 155, 215, 0.4);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(21, 155, 215, 0.5);
+}
+
+/* Glass panel styling */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.dark .glass-panel {
+  background: rgba(18, 32, 51, 0.85);
+  border: 1px solid rgba(30, 51, 77, 0.6);
+}
+
+/* Leaflet Map overrides */
+.leaflet-container {
+  font-family: inherit;
+  border-radius: 1.25rem;
+  z-index: 10;
+}
