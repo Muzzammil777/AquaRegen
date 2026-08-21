@@ -1,19 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import {
   MapPin,
   Filter,
-  Layers,
-  Waves,
-  Droplets,
-  AlertTriangle,
   Info,
-  ShieldCheck,
-  X,
-  ExternalLink,
   Navigation,
-  Home,
   Compass
 } from 'lucide-react';
 import { api } from '../services/api';
@@ -21,6 +13,14 @@ import { useAuth } from '../context/AuthContext';
 import type { MapZone } from '../types';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { LoadingSkeleton } from '../components/common/LoadingSkeleton';
+
+const DEFAULT_CATEGORIES = [
+  { id: 'all', label: 'All Locations' },
+  { id: 'recharge_zone', label: 'Recharge Zones' },
+  { id: 'groundwater', label: 'Groundwater Monitoring' },
+  { id: 'storage', label: 'Storage Facilities' },
+  { id: 'critical_areas', label: 'Critical Stress Areas' }
+];
 
 // Custom SVG Icons for Leaflet markers
 const createCustomIcon = (status: string, isUserProperty: boolean = false) => {
@@ -79,11 +79,18 @@ const createCustomIcon = (status: string, isUserProperty: boolean = false) => {
   });
 };
 
-// Sub-component to center map when zone or recenter is requested
+// Safe Sub-component to center map when zone or recenter is requested
 const MapCenterController: React.FC<{ center: [number, number]; zoom?: number }> = ({ center, zoom = 13 }) => {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, zoom, { animate: true });
+    if (!map || !center || typeof center[0] !== 'number' || typeof center[1] !== 'number' || isNaN(center[0])) {
+      return;
+    }
+    try {
+      map.setView(center, zoom, { animate: false });
+    } catch {
+      // Ignore animation race errors
+    }
   }, [center, zoom, map]);
   return null;
 };
@@ -91,17 +98,21 @@ const MapCenterController: React.FC<{ center: [number, number]; zoom?: number }>
 export const MapPage: React.FC = () => {
   const { property } = useAuth();
   const [zones, setZones] = useState<MapZone[]>([]);
-  const [categories, setCategories] = useState<Array<{ id: string; label: string }>>([]);
+  const [categories, setCategories] = useState<Array<{ id: string; label: string }>>(DEFAULT_CATEGORIES);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedZone, setSelectedZone] = useState<MapZone | null>(null);
   const [userCoords, setUserCoords] = useState<[number, number]>([12.9716, 77.5946]);
   const [locationLabel, setLocationLabel] = useState<string>('Your Location');
+  const [gpsStatus, setGpsStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // 1. Resolve real user coordinates from property
+  // 1. Resolve real user coordinates from property location
   useEffect(() => {
+    let isMounted = true;
+
     const resolveUserLocation = async () => {
       const propLocation = property?.location || 'Bengaluru Urban, KA';
+      if (!isMounted) return;
       setLocationLabel(propLocation.split(',')[0]);
 
       // Check if property has custom non-default coordinates
@@ -110,14 +121,14 @@ export const MapPage: React.FC = () => {
         Math.abs((property?.longitude || 0) - 77.5946) < 0.001;
 
       if (property?.latitude && property?.longitude && !isDefaultBangaloreCoords) {
-        setUserCoords([property.latitude, property.longitude]);
+        if (isMounted) setUserCoords([property.latitude, property.longitude]);
         return;
       }
 
       // If coordinates are default or missing, geocode the actual city/town string
       try {
         const geoRes = await api.searchLocation(propLocation);
-        if (geoRes.found && geoRes.location) {
+        if (geoRes.found && geoRes.location && isMounted) {
           const lat = geoRes.location.latitude;
           const lon = geoRes.location.longitude;
           setUserCoords([lat, lon]);
@@ -128,23 +139,36 @@ export const MapPage: React.FC = () => {
       }
 
       // Fallback
-      setUserCoords([property?.latitude || 12.9716, property?.longitude || 77.5946]);
+      if (isMounted) {
+        setUserCoords([property?.latitude || 12.9716, property?.longitude || 77.5946]);
+      }
     };
 
     resolveUserLocation();
+    return () => { isMounted = false; };
   }, [property]);
 
   const handleUseGPS = () => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      setGpsStatus('GPS not supported on this browser.');
+      return;
+    }
+    setGpsStatus('Requesting GPS coordinates...');
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
         setUserCoords([lat, lon]);
-        setLocationLabel('My GPS Location');
+        setLocationLabel('GPS Location');
+        setGpsStatus(`GPS Active (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
+        setTimeout(() => setGpsStatus(null), 4000);
       },
-      (err) => console.warn('GPS denied:', err),
-      { timeout: 8000 }
+      (err) => {
+        console.warn('GPS denied or timed out:', err);
+        setGpsStatus(`GPS not available (${err.message || 'permission denied'}). Using property location.`);
+        setTimeout(() => setGpsStatus(null), 4000);
+      },
+      { timeout: 8000, enableHighAccuracy: true }
     );
   };
 
@@ -153,10 +177,12 @@ export const MapPage: React.FC = () => {
     try {
       setLoading(true);
       const res = await api.getMapZones(category, lat, lon, locName);
-      setZones(res.zones);
-      setCategories(res.categories);
-      if (res.zones.length > 0) {
+      setZones(res.zones || []);
+      setCategories(res.categories || DEFAULT_CATEGORIES);
+      if (res.zones && res.zones.length > 0) {
         setSelectedZone(res.zones[0]);
+      } else {
+        setSelectedZone(null);
       }
     } catch (err) {
       console.warn('Map zones fetch error:', err);
@@ -180,9 +206,14 @@ export const MapPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-aqua-50 dark:bg-aqua-950 text-aqua-700 dark:text-aqua-300 text-[10px] font-extrabold border border-aqua-200 dark:border-aqua-800">
-              <Compass className="w-3 h-3 text-aqua-500 animate-spin" />
+              <Compass className="w-3 h-3 text-aqua-500" />
               LOCATION SYNCED: {locationLabel.toUpperCase()}
             </span>
+            {gpsStatus && (
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 italic">
+                {gpsStatus}
+              </span>
+            )}
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-navy-900 dark:text-white tracking-tight">
             Local Water & Recharge Map
@@ -196,7 +227,7 @@ export const MapPage: React.FC = () => {
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
             onClick={handleUseGPS}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-aqua-50 dark:bg-aqua-950/60 hover:bg-aqua-100 dark:hover:bg-aqua-900/60 text-aqua-700 dark:text-aqua-300 border border-aqua-200 dark:border-aqua-800 text-xs font-bold shadow-soft transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-aqua-50 dark:bg-aqua-950/60 hover:bg-aqua-100 dark:hover:bg-aqua-900/60 text-aqua-700 dark:text-aqua-300 border border-aqua-200 dark:border-aqua-800 text-xs font-bold shadow-soft transition-all cursor-pointer"
             title="Use device GPS location"
           >
             <MapPin className="w-3.5 h-3.5 text-aqua-500" />
@@ -209,7 +240,7 @@ export const MapPage: React.FC = () => {
                 setSelectedZone(zones[0]);
               }
             }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy-800 hover:bg-navy-900 text-white text-xs font-bold shadow-soft transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy-800 hover:bg-navy-900 text-white text-xs font-bold shadow-soft transition-all cursor-pointer"
           >
             <Navigation className="w-3.5 h-3.5 text-aqua-400" />
             <span>Center on My Property</span>
@@ -222,11 +253,11 @@ export const MapPage: React.FC = () => {
         <span className="text-xs font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1 shrink-0 pl-1 pr-2">
           <Filter className="w-3.5 h-3.5" /> Filter:
         </span>
-        {categories.map(cat => (
+        {(categories || DEFAULT_CATEGORIES).map(cat => (
           <button
             key={cat.id}
             onClick={() => setActiveCategory(cat.id)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all border ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all border cursor-pointer ${
               activeCategory === cat.id
                 ? 'bg-navy-800 text-white border-navy-800 dark:bg-aqua-500 dark:border-aqua-500 shadow-sm'
                 : 'bg-white dark:bg-surface-darkcard text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-surface-darkborder hover:border-slate-300'
@@ -401,7 +432,7 @@ export const MapPage: React.FC = () => {
                   className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-surface-dark hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
                 >
                   <span>Open in External GIS Maps</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-aqua-500" />
+                  <span className="text-aqua-500">↗</span>
                 </a>
               </div>
             </div>

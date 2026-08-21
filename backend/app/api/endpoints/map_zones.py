@@ -5,6 +5,14 @@ from app.db.seed_data import SEED_MAP_ZONES
 
 router = APIRouter()
 
+CATEGORIES_LIST = [
+    {"id": "all", "label": "All Locations"},
+    {"id": "recharge_zone", "label": "Recharge Zones"},
+    {"id": "groundwater", "label": "Groundwater Monitoring"},
+    {"id": "storage", "label": "Storage Facilities"},
+    {"id": "critical_areas", "label": "Critical Stress Areas"}
+]
+
 @router.get("/zones")
 async def get_map_zones(
     category: Optional[str] = None,
@@ -95,18 +103,16 @@ async def get_map_zones(
 
         if category and category.lower() != "all":
             local_filtered = [z for z in local_zones if z.get("category", "").lower() == category.lower()]
-            return {"zones": local_filtered, "total": len(local_filtered)}
+            return {
+                "zones": local_filtered,
+                "total": len(local_filtered),
+                "categories": CATEGORIES_LIST
+            }
 
         return {
             "zones": local_zones,
             "total": len(local_zones),
-            "categories": [
-                {"id": "all", "label": "All Locations"},
-                {"id": "recharge_zone", "label": "Recharge Zones"},
-                {"id": "groundwater", "label": "Groundwater Monitoring"},
-                {"id": "storage", "label": "Storage Facilities"},
-                {"id": "critical_areas", "label": "Critical Stress Areas"}
-            ]
+            "categories": CATEGORIES_LIST
         }
 
     # Fallback to database or seed list
@@ -116,18 +122,16 @@ async def get_map_zones(
         
     if category and category.lower() != "all":
         filtered = [z for z in zones if z.get("category", "").lower() == category.lower()]
-        return {"zones": filtered, "total": len(filtered)}
+        return {
+            "zones": filtered,
+            "total": len(filtered),
+            "categories": CATEGORIES_LIST
+        }
         
     return {
         "zones": zones,
         "total": len(zones),
-        "categories": [
-            {"id": "all", "label": "All Locations"},
-            {"id": "recharge_zone", "label": "Recharge Zones"},
-            {"id": "groundwater", "label": "Groundwater Monitoring"},
-            {"id": "storage", "label": "Storage Facilities"},
-            {"id": "critical_areas", "label": "Critical Stress Areas"}
-        ]
+        "categories": CATEGORIES_LIST
     }
 
 @router.get("/zones/{zone_id}")
