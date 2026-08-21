@@ -4,6 +4,7 @@ import asyncio
 import uuid
 from typing import Dict, Any, List, Optional
 from motor.motor_asyncio import AsyncIOMotorClient
+from bson import ObjectId
 from app.core.config import settings
 
 class LocalJSONStore:
@@ -81,7 +82,6 @@ class LocalJSONStore:
                         match = False
                         break
                 if match:
-                    # Update fields
                     set_data = update.get("$set", update)
                     item.update(set_data)
                     items[idx] = item
@@ -100,7 +100,6 @@ class DatabaseRepository:
     async def initialize(self):
         try:
             client = AsyncIOMotorClient(settings.MONGODB_URI, serverSelectionTimeoutMS=4000)
-            # Check connection
             await client.admin.command('ping')
             self.mongo_client = client
             self.db = client[settings.DATABASE_NAME]
@@ -110,37 +109,70 @@ class DatabaseRepository:
             self.is_mongo = False
             print(f"MongoDB not reachable ({e}). Using persistent Local JSON Document Store.")
 
+    def _format_mongo_query(self, query: Dict[str, Any]) -> Dict[str, Any]:
+        mongo_query = dict(query)
+        if "id" in mongo_query:
+            val = mongo_query.pop("id")
+            conditions = [{"id": val}]
+            if ObjectId.is_valid(val):
+                conditions.append({"_id": ObjectId(val)})
+            mongo_query["$or"] = conditions
+        return mongo_query
+
+    def _clean_mongo_doc(self, doc: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        if not doc:
+            return None
+        res = dict(doc)
+        if "_id" in res:
+            res_id = res.get("id") or str(res["_id"])
+            res["id"] = res_id
+            res["_id"] = str(res["_id"])
+        return res
+
     async def find_one(self, collection: str, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if self.is_mongo and self.db is not None:
-            doc = await self.db[collection].find_one(query)
-            if doc and "_id" in doc:
-                doc["id"] = str(doc["_id"])
-            return doc
+            try:
+                m_query = self._format_mongo_query(query)
+                doc = await self.db[collection].find_one(m_query)
+                return self._clean_mongo_doc(doc)
+            except Exception as e:
+                print(f"Mongo find_one error: {e}")
         return await self.local_store.find_one(collection, query)
 
     async def find_many(self, collection: str, query: Optional[Dict[str, Any]] = None, limit: int = 100) -> List[Dict[str, Any]]:
         if self.is_mongo and self.db is not None:
-            cursor = self.db[collection].find(query or {}).limit(limit)
-            results = []
-            async for doc in cursor:
-                if "_id" in doc:
-                    doc["id"] = str(doc["_id"])
-                results.append(doc)
-            return results
+            try:
+                m_query = self._format_mongo_query(query) if query else {}
+                cursor = self.db[collection].find(m_query).limit(limit)
+                results = []
+                async for doc in cursor:
+                    results.append(self._clean_mongo_doc(doc))
+                return results
+            except Exception as e:
+                print(f"Mongo find_many error: {e}")
         return await self.local_store.find_many(collection, query, limit)
 
     async def insert_one(self, collection: str, doc: Dict[str, Any]) -> Dict[str, Any]:
         if self.is_mongo and self.db is not None:
-            to_insert = dict(doc)
-            res = await self.db[collection].insert_one(to_insert)
-            to_insert["id"] = str(res.inserted_id)
-            return to_insert
+            try:
+                to_insert = dict(doc)
+                if "id" not in to_insert:
+                    to_insert["id"] = str(uuid.uuid4())
+                res = await self.db[collection].insert_one(to_insert)
+                to_insert["_id"] = str(res.inserted_id)
+                return to_insert
+            except Exception as e:
+                print(f"Mongo insert_one error: {e}")
         return await self.local_store.insert_one(collection, doc)
 
     async def update_one(self, collection: str, query: Dict[str, Any], update: Dict[str, Any]) -> bool:
         if self.is_mongo and self.db is not None:
-            res = await self.db[collection].update_one(query, {"$set": update.get("$set", update)})
-            return res.modified_count > 0 or res.matched_count > 0
+            try:
+                m_query = self._format_mongo_query(query)
+                res = await self.db[collection].update_one(m_query, {"$set": update.get("$set", update)})
+                return res.modified_count > 0 or res.matched_count > 0
+            except Exception as e:
+                print(f"Mongo update_one error: {e}")
         return await self.local_store.update_one(collection, query, update)
 
 db_repo = DatabaseRepository()
