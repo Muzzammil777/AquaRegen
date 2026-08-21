@@ -203,7 +203,7 @@ export const SimulatorPage: React.FC = () => {
           ) : (
             <>
               {/* 4 Live Outcome Tiles */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="bg-gradient-to-br from-navy-900 to-navy-800 text-white p-5 rounded-2xl shadow-soft border border-navy-700">
                   <span className="text-[11px] font-semibold text-aqua-300 uppercase tracking-wider block mb-1">
                     Potential Harvest

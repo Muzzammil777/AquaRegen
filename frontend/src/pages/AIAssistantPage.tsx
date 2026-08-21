@@ -239,7 +239,7 @@ How can I help you design, simulate, or optimize your rainwater harvesting and g
           e.preventDefault();
           handleSendMessage();
         }}
-        className="flex items-center gap-2"
+        className="flex items-center gap-2 shrink-0"
       >
         <input
           type="text"
