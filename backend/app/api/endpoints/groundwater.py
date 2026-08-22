@@ -1,8 +1,30 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
+from typing import Optional
 from app.schemas.schemas import GroundwaterRecommendRequest
 from app.services.hydro_engine import HydroEngine, SOIL_FACTORS
+from app.services.nwdp_service import NWDPService
 
 router = APIRouter()
+
+@router.get("/nwdp-telemetry")
+async def get_nwdp_groundwater_telemetry(
+    district: str = Query("karur", description="District in Tamil Nadu (e.g. Karur, Chennai, Coimbatore)"),
+    agency: str = Query("State Ground Water Department", description="Monitoring Agency"),
+    start_date: Optional[str] = Query(None, description="Start date dd-mm-yyyy"),
+    end_date: Optional[str] = Query(None, description="End date dd-mm-yyyy")
+):
+    """
+    Fetches official 6-hourly telemetry data from the National Water Data Portal (NWIC)
+    Dataset: Ground Water Level Tamil_Nadu_SW_GW Tamil Nadu (2026 - 2030) Telemetry Six Hourly
+    Resource ID: 6857c02f-c77e-4576-b349-3e45aacc1c21
+    """
+    telemetry_data = await NWDPService.fetch_groundwater_telemetry(
+        district=district,
+        agency=agency,
+        start_date=start_date,
+        end_date=end_date
+    )
+    return telemetry_data
 
 @router.post("/recommend")
 async def recommend_groundwater_structure(req: GroundwaterRecommendRequest):

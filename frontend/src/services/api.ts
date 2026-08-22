@@ -128,6 +128,13 @@ class ApiService {
     return this.request<any>('/groundwater/overview');
   }
 
+  async getNWDPTelemetry(district: string = 'karur', agency: string = 'State Ground Water Department', startDate?: string, endDate?: string) {
+    const params = new URLSearchParams({ district, agency });
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    return this.request<any>(`/groundwater/nwdp-telemetry?${params.toString()}`);
+  }
+
   // Simulator
   async simulateWater(data: {
     annual_rainfall_mm: number;
