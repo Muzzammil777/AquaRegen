@@ -72,10 +72,9 @@ AquaRegen bridges the gap between **meteorological science** and **everyday prop
 | **1. Command Center Dashboard** | Displays real-time KPIs: Today's Rain ($mm$), Annual Harvest Potential ($L$), Groundwater Depth ($m$), and Water Autonomy ($\%$). | Gives property owners an instant, high-level summary of their water security. |
 | **2. Real-Time Meteorological Analysis** | Connects directly to satellite feeds (Open-Meteo) for live temperature, humidity, 24-hr rain, past 90-days accumulation, and 7-day storm forecasts. | Uses 100% real-time satellite data for any global city or GPS coordinate — no hardcoded mock data. |
 | **3. Rainwater Harvesting Planner** | Computes gross and net harvestable volume based on roof area ($m^2$) and roofing material (Concrete, Metal, Tiles, Pavers). | Tells the user exactly how many litres of clean water they can collect per year. |
-| **4. Groundwater Recharge Planner** | Assesses soil permeability (Sandy Loam, Clay, Silt) and water table depth to recommend **Recharge Pits, Trenches, Injection Wells, or Percolation Ponds**. | Prevents borewells from running dry by injecting rooftop overflow directly into the aquifer. |
-| **5. Water Simulator (What-If Scenarios)** | Interactive sliders for rainfall, tank capacity, and daily demand to test **Scenario A (No RWH)** vs **Scenario B (RWH Only)** vs **Scenario C (RWH + Recharge)**. | Shows how a simple storage tank can provide **60–120 days** of independent water supply. |
-| **6. Interactive GIS Water Map** | Leaflet-based map centered on the user's real location with color-coded aquifer stress zones (Healthy, Moderate, Critical). | Helps communities visualize localized groundwater health and nearby recharge swales. |
-| **7. Aqua AI Hydrological Assistant** | An AI chatbot (Groq / Qwen / OpenAI) grounded in the user's active property profile. | Answers user questions in simple language with structured formulas and actionable recommendations. |
+| **4. Water Simulator (What-If Scenarios)** | Interactive sliders for rainfall, tank capacity, and daily demand to test **Scenario A (No RWH)** vs **Scenario B (RWH Only)** vs **Scenario C (RWH + Recharge)**. | Shows how a simple storage tank can provide **60–120 days** of independent water supply. |
+| **5. Interactive GIS Water Map** | Leaflet-based map centered on the user's real location with color-coded aquifer stress zones (Healthy, Moderate, Critical). | Helps communities visualize localized groundwater health and nearby recharge swales. |
+| **6. Aqua AI Hydrological Assistant** | An AI chatbot (Groq / Qwen / OpenAI) grounded in the user's active property profile. | Answers user questions in simple language with structured formulas and actionable recommendations. |
 
 ---
 

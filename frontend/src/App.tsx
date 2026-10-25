@@ -13,7 +13,6 @@ import { OnboardingPage } from './pages/OnboardingPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { RainfallPage } from './pages/RainfallPage';
 import { HarvestingPage } from './pages/HarvestingPage';
-import { GroundwaterPage } from './pages/GroundwaterPage';
 import { MapPage } from './pages/MapPage';
 import { SimulatorPage } from './pages/SimulatorPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
@@ -39,7 +38,6 @@ export const App: React.FC = () => {
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/rainfall" element={<RainfallPage />} />
                 <Route path="/harvesting" element={<HarvestingPage />} />
-                <Route path="/groundwater" element={<GroundwaterPage />} />
                 <Route path="/map" element={<MapPage />} />
                 <Route path="/simulator" element={<SimulatorPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />

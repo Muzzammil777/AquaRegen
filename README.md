@@ -109,24 +109,19 @@
 - **Transparent Mathematical Breakdown:** Step-by-step physical formula previews and runoff coefficient calibration.
 - **Optimal Tank Sizing:** Recommends modular tank capacities for dry-spell coverage.
 
-### 4. 🌱 Groundwater Recharge Planner (`/groundwater`)
-- **Recharge Suitability Score ($0-100\%$):** Geological permeability modeling based on soil typology and water table depth.
-- **CGWB Engineering Structures:** Specifications for **Recharge Pits**, **Recharge Trenches**, **Recharge Injection Wells / Shafts**, and **Percolation Ponds**.
-- **Filter Media Specs:** Sizing for graded gravel, coarse sand, and boulder filtration packs.
-
-### 5. 🔮 Water Simulator & Scenario Matrix (`/simulator`)
+### 4. 🔮 Water Simulator & Scenario Matrix (`/simulator`)
 - **Dynamic Real-Time Sliders:** Adjust rainfall, roof area, tank storage, daily demand, and recharge capacity on the fly.
 - **3-Scenario Comparison Matrix:**
   - **Scenario A (100% Depletion):** Without Rainwater Harvesting
   - **Scenario B (Moderate Autonomy):** With Rainwater Harvesting Only
   - **Scenario C (Optimal Security):** With RWH + Groundwater Recharge
 
-### 6. 🗺️ Interactive GIS Water Map (`/map`)
+### 5. 🗺️ Interactive GIS Water Map (`/map`)
 - **Leaflet OpenStreetMap:** Automatically centers on your real location (e.g. Pugalur, Tamil Nadu) with color-coded aquifer stress zones.
 - **Zone Details Drawer:** Slide-out drawer with localized soil permeability, rainfall depth, and recommended interventions.
 - **1-Click Live GPS:** Instant device GPS lock for high-accuracy local telemetry.
 
-### 7. 🤖 Aqua AI Decision Assistant (`/ai`)
+### 6. 🤖 Aqua AI Decision Assistant (`/ai`)
 - **Context-Grounded Hydrological Intelligence:** Pre-loaded with your active property parameters.
 - **Powered by Groq (`qwen/qwen3.6-27b`):** Fast inference with rich markdown formatting, formulas, and step badges.
 

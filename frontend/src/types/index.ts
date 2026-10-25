@@ -120,43 +120,6 @@ export type HarvestingCalculationResult = {
   surface_coefficients: Record<string, number>;
 };
 
-export type GroundwaterAssessment = {
-  assessment: {
-    suitability_score: number;
-    potential_category: string;
-    status_color: string;
-    groundwater_depth_m: number;
-    depth_assessment: string;
-    soil_type: string;
-    soil_details: {
-      name: string;
-      score: number;
-      drainage: string;
-      rate_mm_hr: number;
-    };
-    recommended_structure: string;
-    structure_dimensions: string;
-    filtration_media: string;
-    reasons: string[];
-    estimated_recharge_litres: number;
-    estimated_recharge_range: string;
-    disclaimer: string;
-  };
-  input_summary: {
-    soil_type: string;
-    groundwater_depth_m: number;
-    available_land_sqm: number;
-    annual_rainfall_mm: number;
-    catchment_area_sqm: number;
-  };
-  soil_options: Array<{
-    id: string;
-    name: string;
-    drainage: string;
-    rate_mm_hr: number;
-  }>;
-};
-
 export type MonthlySimulationItem = {
   month: string;
   rainfall_mm: number;
