@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { HardwareDemoSection } from '../components/home/HardwareDemoSection';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -181,6 +182,7 @@ export const LandingPage: React.FC = () => {
           {/* Center Navigation Links */}
           <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-600 dark:text-slate-300">
             <a href="#water-cycle" className="hover:text-aqua-600 dark:hover:text-aqua-400 transition-colors">Water Cycle</a>
+            <a href="#hardware-demo" className="hover:text-aqua-600 dark:hover:text-aqua-400 transition-colors">Hardware Demo</a>
             <a href="#calculator" className="hover:text-aqua-600 dark:hover:text-aqua-400 transition-colors">Estimator</a>
             <a href="#scenarios" className="hover:text-aqua-600 dark:hover:text-aqua-400 transition-colors">Scenarios</a>
             <a href="#sectors" className="hover:text-aqua-600 dark:hover:text-aqua-400 transition-colors">Sectors</a>
@@ -457,6 +459,9 @@ export const LandingPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Hardware Prototype Demonstration */}
+      <HardwareDemoSection />
 
       {/* Interactive What-If Scenario Matrix Section */}
       <section id="scenarios" className="py-16 sm:py-20 px-4 sm:px-8 lg:px-12 z-10 w-full overflow-hidden">
@@ -766,6 +771,7 @@ export const LandingPage: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-6">
             <a href="#water-cycle" className="hover:text-white transition-colors">Water Cycle</a>
+            <a href="#hardware-demo" className="hover:text-white transition-colors">Hardware Demo</a>
             <a href="#calculator" className="hover:text-white transition-colors">Estimator</a>
             <a href="#scenarios" className="hover:text-white transition-colors">What-If Scenarios</a>
             <a href="#sectors" className="hover:text-white transition-colors">Sectors</a>
