@@ -298,8 +298,9 @@ export const SimulatorPage: React.FC = () => {
                 What-If Scenario Matrix
               </h3>
             </div>
-            <div className="p-2.5 rounded-xl bg-forest-50 dark:bg-forest-950/60 border border-forest-200/80 dark:border-forest-800 text-xs text-forest-900 dark:text-forest-200 font-bold">
-              {scenarios.insights.summary_text}
+            <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800/80 text-xs text-emerald-900 dark:text-emerald-200 font-bold shadow-xs">
+              <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>{scenarios.insights.summary_text}</span>
             </div>
           </div>
 
