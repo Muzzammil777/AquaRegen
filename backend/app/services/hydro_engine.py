@@ -29,42 +29,53 @@ class HydroEngine:
         roof_area_sqm: float,
         annual_rainfall_mm: float,
         surface_type: str = "concrete",
-        filter_efficiency: float = 0.90,
+        filter_efficiency: float = 0.875,
         first_flush_mm: float = 1.5
     ) -> Dict[str, Any]:
         """
-        Calculates harvestable rainwater:
-        Formula: Harvestable Water (L) = Rainfall (mm) * Catchment Area (m^2) * Runoff Coefficient * Filter Efficiency
+        Calculates harvestable rainwater with explicit hydrological math:
+        Formula:
+          Gross Yield (L) = Annual Rainfall (mm) * Roof Area (m^2) * Runoff Coefficient (C)
+          Net Yield (L) = Gross Yield (L) * Filter & First-Flush Efficiency Factor (eta)
         Note: 1 mm over 1 m^2 = 1 Litre (0.001 m * 1 m^2 = 0.001 m^3 = 1 L)
         """
         runoff_coeff = RUNOFF_COEFFICIENTS.get(surface_type.lower(), 0.80)
         
-        # Gross potential before first flush and filtration
+        # 1. Gross potential before first-flush diversion and filtration
         gross_potential_litres = annual_rainfall_mm * roof_area_sqm * runoff_coeff
         
-        # Effective rainfall accounting for first flush diversion across ~35 rainfall events/year
-        estimated_rainy_events = 35
-        first_flush_loss_mm = min(annual_rainfall_mm * 0.08, estimated_rainy_events * first_flush_mm)
-        effective_rainfall_mm = max(0.0, annual_rainfall_mm - first_flush_loss_mm)
-        
-        # Net harvestable water after first-flush filter and mesh filter
-        net_harvestable_litres = effective_rainfall_mm * roof_area_sqm * runoff_coeff * filter_efficiency
+        # 2. Net harvestable water after first-flush diversion and mesh filter efficiency
+        # By default filter_efficiency is 0.875 (87.5% net collection efficiency)
+        net_harvestable_litres = gross_potential_litres * filter_efficiency
+        first_flush_deduction_litres = gross_potential_litres - net_harvestable_litres
         
         # Rounded figures
         net_harvestable_litres = round(net_harvestable_litres, 1)
         gross_potential_litres = round(gross_potential_litres, 1)
+        first_flush_deduction_litres = round(first_flush_deduction_litres, 1)
         
+        if filter_efficiency < 1.0:
+            formula_string = f"{annual_rainfall_mm} mm × {roof_area_sqm:g} m² × {runoff_coeff:g} × {filter_efficiency:g} = {round(net_harvestable_litres):,} L"
+        else:
+            formula_string = f"{annual_rainfall_mm} mm × {roof_area_sqm:g} m² × {runoff_coeff:g} = {round(gross_potential_litres):,} L"
+
+        gross_formula_string = f"{annual_rainfall_mm} mm × {roof_area_sqm:g} m² × {runoff_coeff:g} = {round(gross_potential_litres):,} L"
+        net_formula_string = f"{round(gross_potential_litres):,} L × {filter_efficiency * 100:.1f}% (Filter η) = {round(net_harvestable_litres):,} L"
+
         return {
             "roof_area_sqm": roof_area_sqm,
             "annual_rainfall_mm": annual_rainfall_mm,
             "surface_type": surface_type,
             "runoff_coefficient": runoff_coeff,
             "filter_efficiency": filter_efficiency,
-            "first_flush_deduction_litres": round(gross_potential_litres - net_harvestable_litres, 1),
+            "filter_efficiency_pct": round(filter_efficiency * 100, 1),
+            "first_flush_deduction_litres": first_flush_deduction_litres,
             "gross_potential_litres": gross_potential_litres,
             "net_harvestable_litres": net_harvestable_litres,
             "daily_average_harvest_litres": round(net_harvestable_litres / 365, 1),
-            "formula_string": f"{annual_rainfall_mm} mm × {roof_area_sqm} m² × {runoff_coeff} = {round(gross_potential_litres):,} L"
+            "formula_string": formula_string,
+            "gross_formula_string": gross_formula_string,
+            "net_formula_string": net_formula_string
         }
 
     @staticmethod

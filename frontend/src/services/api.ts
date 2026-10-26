@@ -90,8 +90,23 @@ class ApiService {
   }
 
   // Rainfall Analysis
-  async getRainfallAnalysis(location: string = 'bengaluru', roof_area: number = 120, surface: string = 'concrete') {
-    return this.request<any>(`/rainfall?location=${location}&roof_area=${roof_area}&surface_type=${surface}`);
+  async getRainfallAnalysis(
+    location: string = 'bengaluru',
+    roof_area: number = 120,
+    surface: string = 'concrete',
+    lat?: number,
+    lon?: number
+  ) {
+    const params = new URLSearchParams({
+      location,
+      roof_area: roof_area.toString(),
+      surface_type: surface,
+    });
+    if (lat !== undefined && lon !== undefined) {
+      params.append('lat', lat.toString());
+      params.append('lon', lon.toString());
+    }
+    return this.request<any>(`/rainfall?${params.toString()}`);
   }
 
   // Harvesting Planner
