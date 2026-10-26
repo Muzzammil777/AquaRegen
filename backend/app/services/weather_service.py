@@ -119,11 +119,13 @@ class WeatherService:
                     disp = data.get("display_name", clean_query)
                     parts = disp.split(",")
                     short_disp = f"{parts[0].strip()}, {parts[-1].strip()}" if len(parts) > 1 else disp
+                    raw_lat = data.get("lat")
+                    raw_lon = data.get("lon")
                     geo_result = {
                         "name": parts[0].strip(),
                         "display_name": short_disp,
-                        "latitude": float(data.get("lat")),
-                        "longitude": float(data.get("lon")),
+                        "latitude": float(raw_lat) if raw_lat is not None else 12.9716,
+                        "longitude": float(raw_lon) if raw_lon is not None else 77.5946,
                         "admin1": parts[1].strip() if len(parts) > 1 else "",
                         "country": parts[-1].strip() if len(parts) > 1 else ""
                     }
@@ -171,10 +173,13 @@ class WeatherService:
                     past_90_vals = precip_list[:90] if len(precip_list) >= 90 else precip_list[:-7]
                     total_past_90_days = sum(p for p in past_90_vals if p is not None)
 
-                    # 2. Live atmospheric telemetry
-                    current_temp = float(current.get("temperature_2m", 28.0))
-                    current_humidity = int(current.get("relative_humidity_2m", 65))
-                    current_rain = float(current.get("precipitation", 0.0))
+                    # 2. Live atmospheric telemetry (with strict NoneType guards)
+                    raw_temp = current.get("temperature_2m")
+                    raw_humidity = current.get("relative_humidity_2m")
+                    raw_rain = current.get("precipitation")
+                    current_temp = float(raw_temp) if raw_temp is not None else 28.0
+                    current_humidity = int(raw_humidity) if raw_humidity is not None else 65
+                    current_rain = float(raw_rain) if raw_rain is not None else 0.0
 
                     # 3. 7-day storm radar daily precipitation
                     forecast_dates = dates[-7:]
@@ -213,7 +218,19 @@ class WeatherService:
         except Exception as e:
             logger.warning(f"Open-Meteo forecast API error for ({latitude}, {longitude}): {e}")
 
-        # Fallback in case of network issue
+        # Dynamic fallback in case of network issue
+        now_dt = datetime.now()
+        fallback_daily_rain = [0.0, 1.2, 0.0, 4.5, 2.1, 0.0, 8.0]
+        fallback_forecast = [
+            {
+                "date": (now_dt + timedelta(days=i)).strftime("%a %d"),
+                "full_date": (now_dt + timedelta(days=i)).strftime("%Y-%m-%d"),
+                "rain_mm": fallback_daily_rain[i % len(fallback_daily_rain)],
+                "precipitation_mm": fallback_daily_rain[i % len(fallback_daily_rain)]
+            }
+            for i in range(7)
+        ]
+
         return {
             "source": "Open-Meteo Baseline Offline Model",
             "status": "fallback",
@@ -223,16 +240,8 @@ class WeatherService:
             "current_humidity_pct": 65,
             "current_rain_mm": 0.0,
             "past_90_days_sum_mm": 195.0,
-            "forecast_7days": [
-                {"date": "Day 1", "full_date": "2026-10-26", "rain_mm": 0.0, "precipitation_mm": 0.0},
-                {"date": "Day 2", "full_date": "2026-10-27", "rain_mm": 1.2, "precipitation_mm": 1.2},
-                {"date": "Day 3", "full_date": "2026-10-28", "rain_mm": 0.0, "precipitation_mm": 0.0},
-                {"date": "Day 4", "full_date": "2026-10-29", "rain_mm": 4.5, "precipitation_mm": 4.5},
-                {"date": "Day 5", "full_date": "2026-10-30", "rain_mm": 2.1, "precipitation_mm": 2.1},
-                {"date": "Day 6", "full_date": "2026-10-31", "rain_mm": 0.0, "precipitation_mm": 0.0},
-                {"date": "Day 7", "full_date": "2026-11-01", "rain_mm": 8.0, "precipitation_mm": 8.0}
-            ],
-            "forecast_7_days": [],
+            "forecast_7days": fallback_forecast,
+            "forecast_7_days": fallback_forecast,
             "is_live": False
         }
 
@@ -349,18 +358,21 @@ class WeatherService:
             logger.warning(f"Open-Meteo archive API error for ({latitude}, {longitude}): {e}")
 
         # Fallback baseline
+        fallback_history = [
+            {
+                "year": str(yr),
+                "rainfall_mm": round(950.0 * [0.96, 1.02, 0.94, 1.08, 0.98][i % 5], 1),
+                "deviation": ["-4.0%", "+2.0%", "-6.0%", "+8.0%", "-2.0%"][i % 5]
+            }
+            for i, yr in enumerate(range(start_year, end_year + 1))
+        ]
+
         return {
             "source": "Regional Climatological Fallback",
             "start_year": start_year,
             "end_year": end_year,
             "annual_rainfall_mm": 950.0,
-            "historical_comparison": [
-                {"year": "2021", "rainfall_mm": 920.0, "deviation": "-3.2%"},
-                {"year": "2022", "rainfall_mm": 980.0, "deviation": "+3.2%"},
-                {"year": "2023", "rainfall_mm": 890.0, "deviation": "-6.3%"},
-                {"year": "2024", "rainfall_mm": 1040.0, "deviation": "+9.5%"},
-                {"year": "2025", "rainfall_mm": 920.0, "deviation": "-3.2%"}
-            ],
+            "historical_comparison": fallback_history,
             "monthly_averages": [
                 {"month": "Jan", "rainfall_mm": 12.0},
                 {"month": "Feb", "rainfall_mm": 8.0},
