@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 
 export interface LocationState {
@@ -24,6 +24,7 @@ const LocationContext = createContext<LocationContextType | undefined>(undefined
 
 export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { property } = useAuth();
+  const hasInitialized = useRef<boolean>(false);
 
   const getInitialLocation = () => {
     if (property?.location) {
@@ -36,64 +37,85 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [annualRainfallMm, setAnnualRainfallMm] = useState<number>(
     property?.annual_rainfall_mm || 1080
   );
-  const [roofArea, setRoofArea] = useState<number>(
+  const [roofArea, setRoofAreaState] = useState<number>(
     property?.roof_area_sqm || 120
   );
-  const [surfaceType, setSurfaceType] = useState<string>(
+  const [surfaceType, setSurfaceTypeState] = useState<string>(
     property?.surface_type || 'concrete'
   );
   const [latitude, setLatitude] = useState<number | undefined>(undefined);
   const [longitude, setLongitude] = useState<number | undefined>(undefined);
   const [isCustom, setIsCustom] = useState<boolean>(false);
 
-  // Synchronize when authenticated property profile changes
+  // Synchronize ONLY ONCE when authenticated property profile loads
   useEffect(() => {
-    if (property?.location && !isCustom) {
+    if (property?.location && !hasInitialized.current) {
+      hasInitialized.current = true;
       const locName = property.location.split(',')[0].trim();
       setActiveLocationName(locName);
       if (property.annual_rainfall_mm) {
         setAnnualRainfallMm(property.annual_rainfall_mm);
       }
       if (property.roof_area_sqm) {
-        setRoofArea(property.roof_area_sqm);
+        setRoofAreaState(property.roof_area_sqm);
       }
       if (property.surface_type) {
-        setSurfaceType(property.surface_type);
+        setSurfaceTypeState(property.surface_type);
       }
     }
   }, [property]);
 
   const updateLocationState = (updates: Partial<LocationState>) => {
     if (updates.activeLocationName !== undefined) {
-      setActiveLocationName(updates.activeLocationName);
-      setIsCustom(true);
+      const cleanName = updates.activeLocationName.trim();
+      setActiveLocationName(prev => {
+        if (prev.toLowerCase() === cleanName.toLowerCase()) {
+          return prev;
+        }
+        return cleanName;
+      });
     }
+
     if (updates.annualRainfallMm !== undefined) {
-      setAnnualRainfallMm(updates.annualRainfallMm);
+      const rounded = Math.round(updates.annualRainfallMm * 10) / 10;
+      setAnnualRainfallMm(prev => (Math.round(prev * 10) === Math.round(rounded * 10) ? prev : rounded));
     }
+
     if (updates.roofArea !== undefined) {
-      setRoofArea(updates.roofArea);
+      setRoofAreaState(prev => (prev === updates.roofArea ? prev : updates.roofArea!));
     }
+
     if (updates.surfaceType !== undefined) {
-      setSurfaceType(updates.surfaceType);
+      setSurfaceTypeState(prev => (prev === updates.surfaceType ? prev : updates.surfaceType!));
     }
+
     if (updates.latitude !== undefined) {
-      setLatitude(updates.latitude);
+      setLatitude(prev => (prev === updates.latitude ? prev : updates.latitude));
     }
+
     if (updates.longitude !== undefined) {
-      setLongitude(updates.longitude);
+      setLongitude(prev => (prev === updates.longitude ? prev : updates.longitude));
     }
+
     if (updates.isCustom !== undefined) {
       setIsCustom(updates.isCustom);
     }
+  };
+
+  const setRoofArea = (sqm: number) => {
+    setRoofAreaState(prev => (prev === sqm ? prev : sqm));
+  };
+
+  const setSurfaceType = (surface: string) => {
+    setSurfaceTypeState(prev => (prev === surface ? prev : surface));
   };
 
   const resetToPropertyLocation = () => {
     const locName = property?.location ? property.location.split(',')[0].trim() : 'Karur';
     setActiveLocationName(locName);
     setAnnualRainfallMm(property?.annual_rainfall_mm || 1080);
-    setRoofArea(property?.roof_area_sqm || 120);
-    setSurfaceType(property?.surface_type || 'concrete');
+    setRoofAreaState(property?.roof_area_sqm || 120);
+    setSurfaceTypeState(property?.surface_type || 'concrete');
     setIsCustom(false);
   };
 

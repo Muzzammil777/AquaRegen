@@ -42,30 +42,33 @@ export const RainfallPage: React.FC = () => {
   // Baseline home property location (e.g. Karur)
   const homeLocation = property?.location ? property.location.split(',')[0].trim() : 'Karur';
 
+  const requestIdRef = React.useRef<number>(0);
+
   const [customSearchQuery, setCustomSearchQuery] = useState<string>('');
   const [searchStatus, setSearchStatus] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   const fetchRainfall = async (locToFetch?: string) => {
+    const reqId = ++requestIdRef.current;
     setLoading(true);
     try {
       const loc = locToFetch || activeLocationName;
       const res = await api.getRainfallAnalysis(loc, roofArea, surfaceType);
+      if (reqId !== requestIdRef.current) return;
       setData(res);
-      // Synchronize global dynamic location state to keep topbar and sidebar in two-way sync
+      // Synchronize precipitation metrics without re-triggering activeLocationName
       updateLocationState({
-        activeLocationName: res.location.split(',')[0].trim(),
         annualRainfallMm: res.annual_rainfall_mm,
-        roofArea: roofArea,
-        surfaceType: surfaceType,
         latitude: res.latitude,
         longitude: res.longitude,
       });
     } catch (err) {
       console.warn('Rainfall analysis fetch error:', err);
     } finally {
-      setLoading(false);
+      if (reqId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -78,17 +81,17 @@ export const RainfallPage: React.FC = () => {
     if (!customSearchQuery.trim()) return;
     const query = customSearchQuery.trim();
     setSearchStatus(`Connecting to Open-Meteo satellite & meteorological feeds for "${query}"...`);
+    const reqId = ++requestIdRef.current;
+    setLoading(true);
 
     try {
-      setLoading(true);
       const res = await api.getRainfallAnalysis(query, roofArea, surfaceType);
+      if (reqId !== requestIdRef.current) return;
       setData(res);
-      // Immediately reflect across global layout (TopNavbar and Sidebar)
+      const cleanCity = (res.city || res.location.split(',')[0]).trim();
       updateLocationState({
-        activeLocationName: res.location.split(',')[0].trim(),
+        activeLocationName: cleanCity,
         annualRainfallMm: res.annual_rainfall_mm,
-        roofArea: roofArea,
-        surfaceType: surfaceType,
         latitude: res.latitude,
         longitude: res.longitude,
         isCustom: true,
@@ -98,35 +101,38 @@ export const RainfallPage: React.FC = () => {
     } catch (err) {
       setSearchStatus('Failed to retrieve satellite feed. Using baseline.');
     } finally {
-      setLoading(false);
+      if (reqId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
   const handlePresetChange = async (presetId: string) => {
+    const reqId = ++requestIdRef.current;
     setLoading(true);
     try {
       const res = await api.getRainfallAnalysis(presetId, roofArea, surfaceType);
+      if (reqId !== requestIdRef.current) return;
       setData(res);
-      // Immediately update global location state across layout
+      const cleanCity = (res.city || res.location.split(',')[0]).trim();
       updateLocationState({
-        activeLocationName: res.location.split(',')[0].trim(),
+        activeLocationName: cleanCity,
         annualRainfallMm: res.annual_rainfall_mm,
-        roofArea: roofArea,
-        surfaceType: surfaceType,
         latitude: res.latitude,
         longitude: res.longitude,
       });
     } catch (err) {
       console.warn('Preset change error:', err);
     } finally {
-      setLoading(false);
+      if (reqId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
   const handleResetToProperty = () => {
     resetToPropertyLocation();
     setCustomSearchQuery('');
-    fetchRainfall(homeLocation);
   };
 
   const isDifferentFromHome = property?.location &&

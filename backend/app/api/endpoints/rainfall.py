@@ -53,23 +53,34 @@ async def get_rainfall_analysis(
     Eliminates all hardcoded/mocked datasets.
     """
     loc_clean = (location or "bengaluru").strip()
-    loc_slug = loc_clean.lower().split(",")[0].strip().replace(" ", "_")
+    raw_slug = loc_clean.lower().split(",")[0].strip().replace(" ", "_")
     
-    # 1. Dynamic Geocoding: The UI input strictly drives geocoding coordinates
+    # 1. Dynamic Geocoding: Stabilize slug matching against regional presets
+    loc_slug = raw_slug
+    preset_key = None
+    for k in REGIONAL_PRESETS.keys():
+        if raw_slug == k or raw_slug.startswith(k) or k.startswith(raw_slug):
+            preset_key = k
+            loc_slug = k
+            break
+
     target_lat: float
     target_lon: float
     display_name: str
+    city_name: str
     is_custom = True
 
     if lat is not None and lon is not None:
         target_lat = lat
         target_lon = lon
         display_name = loc_clean.title()
-    elif loc_slug in REGIONAL_PRESETS:
-        preset = REGIONAL_PRESETS[loc_slug]
+        city_name = loc_clean.split(",")[0].title()
+    elif preset_key:
+        preset = REGIONAL_PRESETS[preset_key]
         target_lat = preset["lat"]
         target_lon = preset["lon"]
         display_name = preset["name"]
+        city_name = preset.get("city", preset_key.title())
         is_custom = False
     else:
         # Dynamic geocode via Open-Meteo Geocoding API
@@ -78,11 +89,13 @@ async def get_rainfall_analysis(
             target_lat = geo["latitude"]
             target_lon = geo["longitude"]
             display_name = geo.get("display_name", loc_clean.title())
+            city_name = geo.get("name", loc_clean.split(",")[0].title())
         else:
             # Fallback to default coordinates if unresolved
             target_lat = 12.9716
             target_lon = 77.5946
             display_name = loc_clean.title()
+            city_name = loc_clean.split(",")[0].title()
 
     # 2. Concurrently fetch real-time Forecast and genuine 5-Year Historical Archive from Open-Meteo
     live_weather_task = weather_service.get_live_precipitation_data(target_lat, target_lon)
@@ -150,6 +163,7 @@ async def get_rainfall_analysis(
 
     return {
         "location": display_name,
+        "city": city_name,
         "selected_id": loc_slug,
         "latitude": round(target_lat, 4),
         "longitude": round(target_lon, 4),
