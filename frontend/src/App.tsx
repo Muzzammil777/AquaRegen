@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider } from './context/AuthContext';
+import { LocationProvider } from './context/LocationContext';
 import { AppLayout } from './components/layout/AppLayout';
 
 // Pages
@@ -25,7 +26,8 @@ export const App: React.FC = () => {
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
-          <BrowserRouter>
+          <LocationProvider>
+            <BrowserRouter>
             <Routes>
               {/* Public Landing & Auth */}
               <Route path="/" element={<LandingPage />} />
@@ -49,6 +51,7 @@ export const App: React.FC = () => {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </BrowserRouter>
+          </LocationProvider>
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>

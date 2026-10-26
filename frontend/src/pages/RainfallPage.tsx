@@ -6,11 +6,8 @@ import {
   Droplets,
   Thermometer,
   Search,
-  CheckCircle2,
-  Navigation,
   Compass,
   ArrowRightLeft,
-  Info
 } from 'lucide-react';
 import {
   AreaChart,
@@ -25,37 +22,46 @@ import {
 } from 'recharts';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useLocation } from '../context/LocationContext';
 import { ChartCard } from '../components/common/ChartCard';
 import { LoadingSkeleton } from '../components/common/LoadingSkeleton';
 
 export const RainfallPage: React.FC = () => {
   const { property } = useAuth();
-  
-  // Home property location baseline (e.g., Karur)
-  const homeLocation = property?.location ? property.location.split(',')[0].toLowerCase().trim() : 'bengaluru';
-  
-  const [selectedLocation, setSelectedLocation] = useState<string>(homeLocation);
-  const [roofArea, setRoofArea] = useState<number>(property?.roof_area_sqm || 120);
-  const [surfaceType, setSurfaceType] = useState<string>(property?.surface_type || 'concrete');
+  const {
+    activeLocationName,
+    annualRainfallMm,
+    roofArea,
+    surfaceType,
+    setRoofArea,
+    setSurfaceType,
+    updateLocationState,
+    resetToPropertyLocation,
+  } = useLocation();
+
+  // Baseline home property location (e.g. Karur)
+  const homeLocation = property?.location ? property.location.split(',')[0].trim() : 'Karur';
+
   const [customSearchQuery, setCustomSearchQuery] = useState<string>('');
   const [searchStatus, setSearchStatus] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Initialize with property location if present on mount
-  useEffect(() => {
-    if (property?.location) {
-      const locKey = property.location.split(',')[0].toLowerCase().trim();
-      setSelectedLocation(locKey);
-    }
-  }, [property]);
-
   const fetchRainfall = async (locToFetch?: string) => {
     setLoading(true);
     try {
-      const loc = locToFetch || selectedLocation;
+      const loc = locToFetch || activeLocationName;
       const res = await api.getRainfallAnalysis(loc, roofArea, surfaceType);
       setData(res);
+      // Synchronize global dynamic location state to keep topbar and sidebar in two-way sync
+      updateLocationState({
+        activeLocationName: res.location.split(',')[0].trim(),
+        annualRainfallMm: res.annual_rainfall_mm,
+        roofArea: roofArea,
+        surfaceType: surfaceType,
+        latitude: res.latitude,
+        longitude: res.longitude,
+      });
     } catch (err) {
       console.warn('Rainfall analysis fetch error:', err);
     } finally {
@@ -64,33 +70,67 @@ export const RainfallPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchRainfall(selectedLocation);
-  }, [selectedLocation, roofArea, surfaceType]);
+    fetchRainfall(activeLocationName);
+  }, [activeLocationName, roofArea, surfaceType]);
 
   const handleCustomLocationSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customSearchQuery.trim()) return;
     const query = customSearchQuery.trim();
     setSearchStatus(`Connecting to Open-Meteo satellite & meteorological feeds for "${query}"...`);
-    
+
     try {
-      setSelectedLocation(query);
+      setLoading(true);
       const res = await api.getRainfallAnalysis(query, roofArea, surfaceType);
       setData(res);
+      // Immediately reflect across global layout (TopNavbar and Sidebar)
+      updateLocationState({
+        activeLocationName: res.location.split(',')[0].trim(),
+        annualRainfallMm: res.annual_rainfall_mm,
+        roofArea: roofArea,
+        surfaceType: surfaceType,
+        latitude: res.latitude,
+        longitude: res.longitude,
+        isCustom: true,
+      });
       setSearchStatus(`✅ Loaded live meteorological data for ${res.location} (${res.annual_rainfall_mm} mm/year)`);
       setTimeout(() => setSearchStatus(null), 5000);
     } catch (err) {
       setSearchStatus('Failed to retrieve satellite feed. Using baseline.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const switchToLocation = (locName: string) => {
-    setSelectedLocation(locName);
-    setCustomSearchQuery('');
+  const handlePresetChange = async (presetId: string) => {
+    setLoading(true);
+    try {
+      const res = await api.getRainfallAnalysis(presetId, roofArea, surfaceType);
+      setData(res);
+      // Immediately update global location state across layout
+      updateLocationState({
+        activeLocationName: res.location.split(',')[0].trim(),
+        annualRainfallMm: res.annual_rainfall_mm,
+        roofArea: roofArea,
+        surfaceType: surfaceType,
+        latitude: res.latitude,
+        longitude: res.longitude,
+      });
+    } catch (err) {
+      console.warn('Preset change error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const isDifferentFromHome = property?.location && 
-    selectedLocation.toLowerCase() !== homeLocation.toLowerCase();
+  const handleResetToProperty = () => {
+    resetToPropertyLocation();
+    setCustomSearchQuery('');
+    fetchRainfall(homeLocation);
+  };
+
+  const isDifferentFromHome = property?.location &&
+    activeLocationName.toLowerCase() !== homeLocation.toLowerCase();
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -115,21 +155,21 @@ export const RainfallPage: React.FC = () => {
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Authoritative Open-Meteo precipitation feeds, 7-day storm forecasts, and rooftop runoff modeling for{' '}
             <span className="font-bold text-navy-900 dark:text-white underline decoration-aqua-500 decoration-2">
-              {data?.location || selectedLocation}
+              {data?.location || activeLocationName}
             </span>.
           </p>
         </div>
 
-        {/* Real-time Location Search */}
+        {/* Real-time Location Search & Home Property Sync */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
           {isDifferentFromHome && (
             <button
-              onClick={() => switchToLocation(homeLocation)}
+              onClick={handleResetToProperty}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-aqua-50 dark:bg-aqua-950/60 text-aqua-700 dark:text-aqua-300 border border-aqua-200 dark:border-aqua-800 text-xs font-bold hover:bg-aqua-100 transition-colors cursor-pointer"
               title={`Switch back to your registered property in ${property?.location}`}
             >
               <ArrowRightLeft className="w-3.5 h-3.5" />
-              <span>Reset to Property ({property?.location?.split(',')[0]})</span>
+              <span>Reset to Property ({homeLocation})</span>
             </button>
           )}
 
@@ -209,8 +249,8 @@ export const RainfallPage: React.FC = () => {
             Regional Climate Zone
           </label>
           <select
-            value={data?.selected_id || selectedLocation}
-            onChange={e => setSelectedLocation(e.target.value)}
+            value={data?.selected_id || activeLocationName.toLowerCase()}
+            onChange={e => handlePresetChange(e.target.value)}
             className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-surface-dark border border-slate-200 dark:border-surface-darkborder text-xs font-semibold text-navy-900 dark:text-white focus:outline-none focus:border-aqua-500"
           >
             {data?.regional_options?.map((opt: any) => (

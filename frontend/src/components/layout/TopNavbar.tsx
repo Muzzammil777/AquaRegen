@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useLocation } from '../../context/LocationContext';
 
 interface TopNavbarProps {
   onToggleSidebar: () => void;
@@ -21,12 +22,13 @@ interface TopNavbarProps {
 export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleSidebar }) => {
   const { user, property, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { activeLocationName, annualRainfallMm } = useLocation();
   const navigate = useNavigate();
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-slate-200/80 dark:border-surface-darkborder px-4 lg:px-8 py-3 transition-colors">
       <div className="flex items-center justify-between gap-4">
-        {/* Left Side: Hamburger & Breadcrumb */}
+        {/* Left Side: Hamburger & Dynamic Location Telemetry */}
         <div className="flex items-center gap-3">
           <button
             onClick={onToggleSidebar}
@@ -37,13 +39,13 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ onToggleSidebar }) => {
           </button>
 
           <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-            <span className="flex items-center gap-1 font-medium text-navy-900 dark:text-slate-200 bg-slate-100 dark:bg-surface-darkcard px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-surface-darkborder">
+            <span className="flex items-center gap-1.5 font-medium text-navy-900 dark:text-slate-200 bg-slate-100 dark:bg-surface-darkcard px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-surface-darkborder">
               <MapPin className="w-3.5 h-3.5 text-aqua-500" />
-              {property?.location || user?.location || 'Bengaluru Urban, KA'}
+              {activeLocationName}
             </span>
             <span className="text-slate-300 dark:text-slate-600">•</span>
             <span className="font-semibold text-slate-700 dark:text-slate-300">
-              {property?.annual_rainfall_mm || 850} mm / year rainfall zone
+              {Math.round(annualRainfallMm)} mm / year rainfall zone
             </span>
           </div>
         </div>

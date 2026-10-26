@@ -14,6 +14,7 @@ import {
   Droplets
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLocation } from '../../context/LocationContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { property } = useAuth();
+  const { activeLocationName, roofArea, annualRainfallMm } = useLocation();
   const navigate = useNavigate();
 
   const navItems = [
@@ -105,22 +107,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           ))}
         </nav>
 
-        {/* Active Property Card */}
-        {property && (
-          <div className="p-4 m-3 rounded-xl bg-surface-base dark:bg-surface-darkcard border border-slate-200/80 dark:border-surface-darkborder text-xs">
-            <div className="flex items-center justify-between mb-1">
-              <span className="font-semibold text-navy-900 dark:text-slate-200 truncate">{property.name}</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold">
-                Active
-              </span>
-            </div>
-            <p className="text-slate-500 dark:text-slate-400 truncate mb-2">{property.location}</p>
-            <div className="flex items-center justify-between text-[11px] font-medium text-slate-600 dark:text-slate-300 border-t border-slate-200/60 dark:border-slate-800 pt-2">
-              <span>Roof: <strong>{property.roof_area_sqm} m²</strong></span>
-              <span>Rain: <strong>{property.annual_rainfall_mm} mm</strong></span>
-            </div>
+        {/* Active Profile & Dynamic Climate Zone Card */}
+        <div className="p-4 m-3 rounded-xl bg-surface-base dark:bg-surface-darkcard border border-slate-200/80 dark:border-surface-darkborder text-xs">
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-semibold text-navy-900 dark:text-slate-200 truncate flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-aqua-500 shrink-0" />
+              <span className="truncate">{activeLocationName}</span>
+            </span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold shrink-0">
+              Active Zone
+            </span>
           </div>
-        )}
+          <p className="text-slate-500 dark:text-slate-400 truncate mb-2 text-[11px]">
+            {activeLocationName} | Roof: {roofArea} m² Rain: {Math.round(annualRainfallMm)} mm
+          </p>
+          <div className="flex items-center justify-between text-[11px] font-medium text-slate-600 dark:text-slate-300 border-t border-slate-200/60 dark:border-slate-800 pt-2">
+            <span>Roof: <strong>{roofArea} m²</strong></span>
+            <span>Rain: <strong>{Math.round(annualRainfallMm)} mm</strong></span>
+          </div>
+        </div>
       </aside>
     </>
   );
